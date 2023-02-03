@@ -178,7 +178,10 @@ func (z *Int) Add(x, y *Int) *Int {
 	z[0], carry = bits.Add64(x[0], y[0], 0)
 	z[1], carry = bits.Add64(x[1], y[1], carry)
 	z[2], carry = bits.Add64(x[2], y[2], carry)
-	z[3], _ = bits.Add64(x[3], y[3], carry)
+	z[3], carry = bits.Add64(x[3], y[3], carry)
+	if carry != 0 {
+		panic("Overflow in uint256.Add")
+	}
 	return z
 }
 
@@ -292,7 +295,10 @@ func (z *Int) Sub(x, y *Int) *Int {
 	z[0], carry = bits.Sub64(x[0], y[0], 0)
 	z[1], carry = bits.Sub64(x[1], y[1], carry)
 	z[2], carry = bits.Sub64(x[2], y[2], carry)
-	z[3], _ = bits.Sub64(x[3], y[3], carry)
+	z[3], carry = bits.Sub64(x[3], y[3], carry)
+	if carry != 0 {
+		panic("Overflow in uint256.Sub")
+	}
 	return z
 }
 
@@ -366,6 +372,16 @@ func (z *Int) Mul(x, y *Int) *Int {
 	res3 = res3 + x[1]*y[2] + carry
 
 	res[3] = res3 + x[0]*y[3]
+
+	if x[0] != 0 {
+		if res[3] < res3 || (res[3] - res3) / x[0] != y[3] {
+			panic("Overflow in uint256.Mul")
+		}
+	} else if y[3] != 0 {
+		if res[3] < res3 || (res[3] - res3) / y[3] != x[0] {
+			panic("Overflow in uint256.Mul")
+		}
+	}
 
 	return z.Set(&res)
 }
